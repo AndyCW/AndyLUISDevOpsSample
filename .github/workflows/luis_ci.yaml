@@ -103,10 +103,7 @@ jobs:
 
     # TEMPORARY - install latest daily build of bf cli to work around bugs in current GA
     - name: Install @microsoft/botframework-cli
-      run: |
-        npm config set registry https://botbuilder.myget.org/F/botframework-cli/npm/
-        npm i -g @microsoft/botframework-cli
-        npm config set registry https://registry.npmjs.org/
+      run: npm i -g @microsoft/botframework-cli
 
     - name: Ludown to LUIS model
       run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS CI pipeline - ${{ github.run_id }}' --versionid $luisAppVersion
