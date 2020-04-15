@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Resource_Group_name": {       
+      "value": "luisDevOpsRG"
+    },
+    "Resource_Group_location": {         
+        "value": "westus"
+    },
+    "Azure_Resources_region": {
+      "value": "westus"
+    },
+    "LUIS_Prediction_Resource_name": {
+      "value": "LUISDevOpsResource-Prediction"
+    },
+    "LUIS_Authoring_Resource_name": {
+      "value": "LUISDevOpsResource-Authoring"
+    },
+    "Storage_Account_name": {
+      "value": "luisdevopsresultsstorage"
+    }
+  }
+}

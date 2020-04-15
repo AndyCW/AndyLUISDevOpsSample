@@ -1,0 +1,122 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Azure_Resources_region": {
+            "defaultValue": "westus",
+            "type": "String"
+        },
+        "LUIS_Authoring_Resource_name": {
+            "defaultValue": "LUISDevOpsResource-Authoring",
+            "type": "String"
+        },
+        "LUIS_Prediction_Resource_name": {
+            "defaultValue": "LUISDevOpsResource-Prediction",
+            "type": "String"
+        },
+        "Storage_Account_name": {
+            "defaultValue": "luisdevopsstorage",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2017-04-18",
+            "name": "[parameters('LUIS_Prediction_Resource_name')]",
+            "location": "[parameters('Azure_Resources_region')]",
+            "sku": {
+                "name": "S0"
+            },
+            "kind": "LUIS",
+            "properties": {
+                "customSubDomainName": "[parameters('LUIS_Prediction_Resource_name')]"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2017-04-18",
+            "name": "[parameters('LUIS_Authoring_Resource_name')]",
+            "location": "[parameters('Azure_Resources_region')]",
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "LUIS.Authoring",
+            "properties": {
+                "customSubDomainName": "[parameters('LUIS_Authoring_Resource_name')]"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[parameters('Storage_Account_name')]",
+            "location": "[parameters('Azure_Resources_region')]",
+            "sku": {
+                "name": "Standard_RAGRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('Storage_Account_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('Storage_Account_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_RAGRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                },
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('Storage_Account_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('Storage_Account_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_RAGRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                }
+            }
+        }
+    ]
+}
