@@ -39,21 +39,21 @@ jobs:
     name: Build and Test LUIS model
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-      with:
-        fetch-depth: '0'
-
-    - name: Bump version and DONT push tag
-      id: bumpVersion
-      uses: anothrNick/github-tag-action@1.17.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WITH_V: false
-        DRY_RUN: true
-        DEFAULT_BUMP: patch
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Fetch all history for all tags and branches
+      run: git fetch --prune --unshallow
      
+    - name: Use gitversion
+      id: gitversion # step id used as reference for output values
+      uses: gittools/actions/gitversion/execute@v0.9.2
+    - run: |
+        echo "Major: ${{ steps.gitversion.outputs.major }}"
+        echo "Minor: ${{ steps.gitversion.outputs.minor }}"
+        echo "Patch: ${{ steps.gitversion.outputs.patch }}"
+    
     - name: SemVer env
-      run: echo "::set-env name=SemVer::${{ steps.bumpVersion.outputs.new_tag }}" 
+      run: echo "::set-env name=SemVer::${{ steps.gitVersion.outputs.semver }}" 
               
     - name: luisAppVersion env
       run: echo "::set-env name=luisAppVersion::$SemVer" 
