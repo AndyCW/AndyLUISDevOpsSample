@@ -44,13 +44,12 @@ jobs:
     - name: Fetch all history for all tags and branches
       run: git fetch --prune --unshallow
     
-    - name: Get GitVersion
-      run: choco install GitVersion.Portable
-
-    - name: Run GitVersion
-      run: GitVersion /output BuildServer
+    - name: Get Git Version
+      uses: docker://gittools/gitversion:latest-linux-netcoreapp2.2
+      with:
+        args: /github/workspace /nofetch /exec /bin/sh /execargs "-c \"echo $GitVersion_SemVer > /github/workspace/version.txt\""
      
-    - name: FULL_SEM_VER env
+    - name: SemVer env
       run: | 
         temp=$(echo "$(cat version.txt)"  | sed 's/[\.\+]/-/g')
         echo "::set-env name=SemVer::$(echo $temp)"
