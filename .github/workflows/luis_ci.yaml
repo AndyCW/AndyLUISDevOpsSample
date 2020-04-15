@@ -46,17 +46,11 @@ jobs:
     
     - name: Get Git Version
       uses: docker://gittools/gitversion:5.2.5-linux-ubuntu-16.04-netcoreapp2.1
-
       with:
-        args: /github/workspace /nofetch /exec /bin/sh /execargs "-c \"echo $GitVersion_SemVer > /github/workspace/version.txt\""
-     
-    - name: SemVer env
-      run: | 
-        temp=$(echo "$(cat version.txt)"  | sed 's/[\.\+]/-/g')
-        echo "::set-env name=SemVer::$(echo $temp)"
+        args: /github/workspace /nofetch /exec /bin/sh /execargs 
               
     - name: luisAppVersion env
-      run: echo "::set-env name=luisAppVersion::$SemVer" 
+      run: echo "::set-env name=luisAppVersion::$GitHub_SemVer" 
 
     - uses: actions/setup-python@v1
       with:
