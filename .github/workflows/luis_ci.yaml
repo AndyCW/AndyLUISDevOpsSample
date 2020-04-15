@@ -45,7 +45,8 @@ jobs:
       run: git fetch --prune --unshallow
     
     - name: Get Git Version
-      uses: docker://gittools/gitversion:5.2.5-linux-centos-7-netcoreapp2.2
+      uses: docker://gittools/gitversion:5.2.5-linux-ubuntu-16.04-netcoreapp2.1
+
       with:
         args: /github/workspace /nofetch /exec /bin/sh /execargs "-c \"echo $GitVersion_SemVer > /github/workspace/version.txt\""
      
