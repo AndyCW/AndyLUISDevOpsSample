@@ -45,9 +45,10 @@ jobs:
       run: git fetch --prune --unshallow
     
     - name: Get GitVersion
-      uses: docker://gittools/gitversion:5.0.2-linux-centos-7-netcoreapp2.2
-      with:
-        args: /github/workspace /nofetch /exec /bin/sh /execargs "-c \"echo $GitVersion_SemVer > /github/workspace/version.txt\""
+      run: choco install GitVersion.Portable
+
+    - name: Run GitVersion
+      run: GitVersion /output BuildServer
      
     - name: FULL_SEM_VER env
       run: | 
