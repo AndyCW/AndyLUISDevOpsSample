@@ -101,6 +101,10 @@ jobs:
     - name: Disable botframework-cli telemetry
       run: 'mkdir -p ~/.config/@microsoft/botframework-cli; echo "{ \"telemetry\": false }" > $_/config.json'
 
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+      
     # TEMPORARY - install latest daily build of bf cli to work around bugs in current GA
     - name: Install @microsoft/botframework-cli
       run: npm i -g @microsoft/botframework-cli
