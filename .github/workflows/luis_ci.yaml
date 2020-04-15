@@ -15,15 +15,15 @@ on:
 
 env:
   # Set the Azure Resource Group name
-  AzureResourceGroup: luisDevOpsRG
+  AzureResourceGroup: AndyLUISDevOpsRG
   # Set the Azure LUIS Authoring Resource name
-  AzureLuisAuthoringResourceName: LUISDevOpsResource-Authoring
+  AzureLuisAuthoringResourceName: AndyLUISDevOpsResource-Authoring
   # Set the Azure LUIS Prediction Resource name
-  AzureLuisPredictionResourceName: LUISDevOpsResource-Prediction
+  AzureLuisPredictionResourceName: AndyLUISDevOpsResource-Prediction
   # Set the Azure Storage Account name
-  AzureStorageAccountName: luisdevopsresultsstorage
+  AzureStorageAccountName: andyluisdevopsstorage
   # Set the name of the master LUIS app
-  LUIS_MASTER_APP_NAME: LUISDevOps-master
+  LUIS_MASTER_APP_NAME: LUISDevOps-AW-master
 
   # Set the path to the lu file for your LUIS app
   LU_FILE: luis-app/model.lu
