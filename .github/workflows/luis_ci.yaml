@@ -15,15 +15,17 @@ on:
 
 env:
   # Set the Azure Resource Group name
-  AzureResourceGroup: AndyLUISDevOpsRG
+  AzureResourceGroup: luisDevOpsRG
   # Set the Azure LUIS Authoring Resource name
-  AzureLuisAuthoringResourceName: AndyLUISDevOpsResource-Authoring
+  AzureLuisAuthoringResourceName: LUISDevOpsResource-Authoring
   # Set the Azure LUIS Prediction Resource name
-  AzureLuisPredictionResourceName: AndyLUISDevOpsResource-Prediction
+  AzureLuisPredictionResourceName: LUISDevOpsResource-Prediction
   # Set the Azure Storage Account name
-  AzureStorageAccountName: andyluisdevopsstorage
+  AzureStorageAccountName: luisdevopsstorage
   # Set the name of the master LUIS app
-  LUIS_MASTER_APP_NAME: LUISDevOps-AW-master
+  LUIS_MASTER_APP_NAME: LUISDevOps-master
+  # If your repository is Private, set this to true
+  IS_PRIVATE_REPOSITORY: false
 
   # Set the path to the lu file for your LUIS app
   LU_FILE: luis-app/model.lu
@@ -41,10 +43,17 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Fetch all history for all tags and branches
+
+    - name: Fetch all history for all tags and branches - for GitVersion
+      if: IS_PRIVATE_REPOSITORY = false
       run: git fetch --prune --unshallow
-    
-    - name: Get Git Version
+    - name: Fetch all history for all tags and branches (private repo) - for GitVersion
+      if: IS_PRIVATE_REPOSITORY = true
+      run: |
+        git config remote.origin.url https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        git fetch --prune --unshallow    
+
+    - name: GitVersion
       uses: docker://gittools/gitversion:5.2.5-linux-ubuntu-16.04-netcoreapp2.1
       with:
         args: /github/workspace /nofetch /output buildserver
@@ -91,17 +100,16 @@ jobs:
           predictionRegion=$(node -pe 'JSON.parse(process.argv[1]).location' "$(cat predictionAccount.json)")
           echo "::set-env name=luisEndpointRegion::$predictionRegion"
 
-    # Telemetry prompt botcli  bug - https://github.com/microsoft/botframework-cli/issues/370
-    - name: Disable botframework-cli telemetry
-      run: 'mkdir -p ~/.config/@microsoft/botframework-cli; echo "{ \"telemetry\": false }" > $_/config.json'
-
     - uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-      
-    # TEMPORARY - install latest daily build of bf cli to work around bugs in current GA
-    - name: Install @microsoft/botframework-cli
+
+    - name: Install botframework-cli
       run: npm i -g @microsoft/botframework-cli
+
+    # Telemetry prompt botcli  bug - https://github.com/microsoft/botframework-cli/issues/370
+    - name: Disable botframework-cli telemetry
+      run: 'mkdir -p ~/.config/@microsoft/botframework-cli; echo "{ \"telemetry\": false }" > $_/config.json'
 
     - name: Ludown to LUIS model
       run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS CI pipeline - ${{ github.run_id }}' --versionid $luisAppVersion
@@ -224,10 +232,6 @@ jobs:
       with:
         fetch-depth: '0'
 
-    - uses: actions/setup-node@v1
-      with:
-        node-version: '12.x'
-
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -256,16 +260,16 @@ jobs:
           predictionRegion=$(node -pe 'JSON.parse(process.argv[1]).location' "$(cat predictionAccount.json)")
           echo "::set-env name=luisEndpointRegion::$predictionRegion"
 
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
     - name: Install @microsoft/botframework-cli
-      run: |
-        npm config set registry https://botbuilder.myget.org/F/botframework-cli/npm/
-        npm i -g @microsoft/botframework-cli
-        npm config set registry https://registry.npmjs.org/
+      run: npm i -g @microsoft/botframework-cli
 
     # Telemetry prompt botcli  bug - https://github.com/microsoft/botframework-cli/issues/370
     - name: Disable botframework-cli telemetry
       run: 'mkdir -p ~/.config/@microsoft/botframework-cli; echo "{ \"telemetry\": false }" > $_/config.json'
-    
     
     - name: Get master LUIS application ID
       run: |
@@ -346,10 +350,7 @@ jobs:
         node-version: '12.x'
       
     - name: Install @microsoft/botframework-cli
-      run: |
-        npm config set registry https://botbuilder.myget.org/F/botframework-cli/npm/
-        npm i -g @microsoft/botframework-cli
-        npm config set registry https://registry.npmjs.org/
+      run: npm i -g @microsoft/botframework-cli
 
     # Telemetry prompt botcli  bug - https://github.com/microsoft/botframework-cli/issues/370
     - name: Disable botframework-cli telemetry
