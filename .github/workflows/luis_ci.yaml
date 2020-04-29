@@ -114,8 +114,6 @@ jobs:
         if [ $version_count -ge 100 ]; then
           echo "ERROR: LUIS app: $AppId version count will exceed 100. Delete unneeded versions before re-running pipeline"
           exit 1
-    #      last_version=$(node --eval "fs.readFile('luis_versions.json','utf8',(err,data)=>console.log(JSON.parse(data)[$version_count-1].version))")
-    #      bf luis:version:delete --appId $AppId --endpoint $luisAuthoringEndpoint --versionId $last_version --subscriptionKey ${{ secrets.LUISAuthoringKey }}
         fi
       
     # When doing a CI/CD run on push to master, we create a new version in an existing LUIS application 
