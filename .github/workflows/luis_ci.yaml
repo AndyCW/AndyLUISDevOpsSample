@@ -151,12 +151,12 @@ jobs:
     - name: Get Azure subscriptionId
       run: |
           az account show --query 'id' | \
-          xargs -I {} echo "::set-env name=AzureSubscriptionId::{}
+          xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
     
     - name: Azure Get Access Token
       run: |
           az account get-access-token --query accessToken -o tsv  | \
-          xargs -I {} echo "::set-env name=arm_token::{}
+          xargs -I {} echo "::set-env name=arm_token::{}"
 
     - name: Assign LUIS Azure Prediction resource to application
       run: |
