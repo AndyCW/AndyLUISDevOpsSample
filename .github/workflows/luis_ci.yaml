@@ -108,9 +108,9 @@ jobs:
 
     # Determine the current number of versions in the app, naive policy can purge oldest if count is at limit (100)
     # Current implementation prints error message and fails pipeline.
-    - name: Purge LUIS app version
+    - name: Check LUIS app version count
       run: |
-        version_count=$(bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} | jq 'length') \
+        version_count=$(bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} | jq 'length')
         if [ $version_count -ge 100 ]; then
           echo "ERROR: LUIS app: $AppId version count will exceed 100. Delete unneeded versions before re-running pipeline"
           exit 1
