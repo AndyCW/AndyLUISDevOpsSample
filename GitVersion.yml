@@ -2,5 +2,4 @@ mode: Mainline
 branches: {}
 ignore:
   sha: []
-  commits-before: 2020-04-30
 merge-message-formats: {}
