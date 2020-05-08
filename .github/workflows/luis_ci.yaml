@@ -157,6 +157,12 @@ jobs:
         luisDirectVersionPublish: true        
         luisEndpointKey: ${{ secrets.LUISPredictionKey }}
         luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
+        
+    - name: Archive Unit Test Results file
+      uses: actions/upload-artifact@v1
+      with:
+        name: ResultsJson
+        path: results.json     
 
     - name: Analyze Unit test results
       run: dotnet nlu compare -e $UNIT_TEST_FILE -a results.json --unit-test --output-folder unittest
