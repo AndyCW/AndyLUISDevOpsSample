@@ -53,10 +53,15 @@ jobs:
         git config remote.origin.url https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git fetch --prune --unshallow    
 
-    - name: GitVersion
-      uses: docker://gittools/gitversion:5.2.5-linux-ubuntu-16.04-netcoreapp2.1
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.3
       with:
-        args: /github/workspace /nofetch /output buildserver
+          versionSpec: '5.2.x'
+    - name: Use GitVersion
+      id: gitversion # step id used as reference for output values
+      uses: gittools/actions/gitversion/execute@v0.9.3
+    - run: |
+        echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
         
     - name: luisAppVersion env
       run: echo "::set-env name=luisAppVersion::$GitVersion_SemVer" 
@@ -65,6 +70,11 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Get LUIS authoring key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISAuthoringKey::add-mask::{}"
+          
     - name: Get LUIS authoring endpoint
       run: |
           az cognitiveservices account show --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "endpoint" | \
