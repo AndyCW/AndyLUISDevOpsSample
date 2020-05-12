@@ -60,8 +60,6 @@ jobs:
     - name: Use GitVersion
       id: gitversion # step id used as reference for output values
       uses: gittools/actions/gitversion/execute@v0.9.3
-    - run: |
-        echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
         
     - name: luisAppVersion env
       run: echo "::set-env name=luisAppVersion::$GitVersion_SemVer" 
@@ -73,7 +71,7 @@ jobs:
     - name: Get LUIS authoring key
       run: |
           az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
-          xargs -I {} echo "::set-env name=LUISAuthoringKey::add-mask::{}"
+          xargs -I {} add-mask::{} echo "::set-env name=LUISAuthoringKey::{}"
           
     - name: Get LUIS authoring endpoint
       run: |
@@ -97,7 +95,7 @@ jobs:
     - name: Create PR check LUIS application 
       if: github.event_name == 'pull_request'
       run: |
-        importResult=`bf luis:application:import --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }}  --in model.json`
+        importResult=`bf luis:application:import --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}  --in model.json`
         echo "::set-env name=AppId::$(echo $(echo $importResult | cut -b 35-70))" 
 
     # When doing a merge to master, use the master LUIS app - create if necessary (soft fails if exists)
