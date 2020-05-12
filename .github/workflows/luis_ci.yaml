@@ -53,13 +53,10 @@ jobs:
         git config remote.origin.url https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git fetch --prune --unshallow    
 
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.3
+    - name: GitVersion
+      uses: docker://gittools/gitversion:5.2.5-linux-ubuntu-16.04-netcoreapp2.1
       with:
-          versionSpec: '5.2.x'
-    - name: Use GitVersion
-      id: gitversion # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v0.9.3
+        args: /github/workspace /nofetch /output buildserver
         
     - name: luisAppVersion env
       run: echo "::set-env name=luisAppVersion::$GitVersion_SemVer" 
@@ -72,7 +69,12 @@ jobs:
       run: |
           az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
           xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
-          
+
+    - name: Get LUIS prediction key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisPredictionResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISPredictionKey::{}"
+
     - name: Get LUIS authoring endpoint
       run: |
           az cognitiveservices account show --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "endpoint" | \
@@ -102,8 +104,8 @@ jobs:
     - name: Get master LUIS application ID
       if: github.event_name == 'push'
       run: |
-        bf luis:application:create --name $LUIS_MASTER_APP_NAME --subscriptionKey ${{ secrets.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint --versionId=0.1
-        bf luis:application:list --subscriptionKey ${{ secrets.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
+        bf luis:application:create --name $LUIS_MASTER_APP_NAME --subscriptionKey ${{ env.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint --versionId=0.1
+        bf luis:application:list --subscriptionKey ${{ env.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
         jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
         xargs -I {} echo "::set-env name=AppId::{}"
         echo "Found LUIS app: $AppId"
@@ -112,7 +114,7 @@ jobs:
     # Current implementation prints error message and fails pipeline.
     - name: Check LUIS app version count
       run: |
-        version_count=$(bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} | jq 'length')
+        version_count=$(bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} | jq 'length')
         if [ $version_count -ge 100 ]; then
           echo "ERROR: LUIS app: $AppId version count will exceed 100. Delete unneeded versions before re-running pipeline"
           exit 1
@@ -121,17 +123,17 @@ jobs:
     # When doing a CI/CD run on push to master, we create a new version in an existing LUIS application 
     - name: Create new LUIS application version
       if: github.event_name == 'push'
-      run: bf luis:version:import --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} --in model.json
+      run: bf luis:version:import --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --in model.json
 
     - name: Train luis
       shell: bash
-      run: bf luis:train:run --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} --wait
+      run: bf luis:train:run --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
 
     - name: Publish luis
       run: |
         curl POST $POSTurl \
         -H "Content-Type: application/json" \
-        -H "Ocp-Apim-Subscription-Key: ${{ secrets.LUISAuthoringKey }}" \
+        -H "Ocp-Apim-Subscription-Key: ${{ env.LUISAuthoringKey }}" \
         --data-ascii "{'versionId': '$luisAppVersion', 'directVersionPublish': true}" 
       env:
         POSTurl: ${{ env.luisAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.AppId }}/publish
@@ -148,14 +150,7 @@ jobs:
           xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
 
     - name: Assign LUIS Azure Prediction resource to application
-      run: |
-        curl POST $POSTurl \
-        -H "Authorization: Bearer $(az account get-access-token --query accessToken -o tsv)" \
-        -H "Content-Type: application/json" \
-        -H "Ocp-Apim-Subscription-Key: ${{ secrets.LUISAuthoringKey }}" \
-        --data-ascii "{'AzureSubscriptionId': '$AzureSubscriptionId', 'ResourceGroup': '$AzureResourceGroup', 'AccountName': '$AzureLuisPredictionResourceName' }"
-      env:
-        POSTurl: ${{ env.luisAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.AppId }}/azureaccounts
+      run: bf luis:application:assignazureaccount --accountName $AzureLuisPredictionResourceName --appId $AppId --armToken $(az account get-access-token --query accessToken -o tsv) --endpoint $luisAuthoringEndpoint --resourceGroup $AzureResourceGroup --subscriptionKey ${{ env.LUISAuthoringKey }}
 
     - name: Test Luis model
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
@@ -163,7 +158,7 @@ jobs:
         luisAppId: ${{ env.AppId }}
         luisVersionId: ${{ env.luisAppVersion }}
         luisDirectVersionPublish: true        
-        luisEndpointKey: ${{ secrets.LUISPredictionKey }}
+        luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
 
     - name: Analyze Unit test results
@@ -179,7 +174,7 @@ jobs:
     - name: Delete luis test target app
       if: always() && (github.event_name == 'pull_request')
       shell: bash
-      run:  bf luis:application:delete --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} --force
+      run:  bf luis:application:delete --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --force
 
 
   # Job: LUIS quality testing
@@ -198,6 +193,16 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Get LUIS authoring key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
+  
+    - name: Get LUIS prediction key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisPredictionResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISPredictionKey::{}"
+
     - name: Get LUIS authoring endpoint
       run: |
           az cognitiveservices account show --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "endpoint" | \
@@ -215,14 +220,14 @@ jobs:
 
     - name: Get master LUIS application ID
       run: |
-        bf luis:application:list --subscriptionKey ${{ secrets.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
+        bf luis:application:list --subscriptionKey ${{ env.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
         jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
         xargs -I {} echo "::set-env name=AppId::{}"
         echo "Found LUIS app: $AppId"
 
     - name: Get LUIS latest version ID
       run: |
-        bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} --take 1 | \
+        bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --take 1 | \
         jq '.[0].version' | \
         xargs -I {} echo "::set-env name=LuisVersion::{}"
 
@@ -239,7 +244,7 @@ jobs:
         luisAppId: ${{ env.AppId }} 
         luisVersionId: ${{ env.LuisVersion }}
         luisDirectVersionPublish: true
-        luisEndpointKey: ${{ secrets.LUISPredictionKey }}
+        luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
 
     - name: download baseline
@@ -298,6 +303,11 @@ jobs:
     - name: Bypass botframework-cli telemetry prompts, enable telemetry collection - set to false to disable telemetry collection
       run: echo "::set-env name=BF_CLI_TELEMETRY::true"
 
+    - name: Get LUIS authoring key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
+
     - name: Get LUIS authoring endpoint
       run: |
           az cognitiveservices account show --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "endpoint" | \
@@ -305,14 +315,14 @@ jobs:
 
     - name: Get master LUIS application ID
       run: |
-        bf luis:application:list --subscriptionKey ${{ secrets.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
+        bf luis:application:list --subscriptionKey ${{ env.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
         jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
         xargs -I {} echo "::set-env name=AppId::{}"
         echo "Found LUIS app: $AppId"
 
     - name: Get LUIS latest version ID
       run: |
-        bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ secrets.LUISAuthoringKey }} --take 1 --out luis_latest_version.json
+        bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --take 1 --out luis_latest_version.json
         cat luis_latest_version.json | jq '.[0].version' | \
         xargs -I {} echo "::set-env name=LuisVersion::{}"
       
