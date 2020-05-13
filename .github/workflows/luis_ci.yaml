@@ -72,7 +72,8 @@ jobs:
       run: |
           az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
           xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
-          echo "::add-mask::$LUISAuthoringKey"
+          key={{ env.LUISAuthoringKey }}
+          echo "::add-mask::$key"
           
     - name: Get LUIS prediction key
       run: |
