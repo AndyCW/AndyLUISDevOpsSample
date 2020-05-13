@@ -72,7 +72,7 @@ jobs:
       run: |
           az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
           xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
-          echo "::add-mask::{{ env.LUISAuthoringKey }}"
+          echo "::add-mask::$LUISAuthoringKey"
           
     - name: Get LUIS prediction key
       run: |
@@ -155,7 +155,7 @@ jobs:
 
     - name: Assign LUIS Azure Prediction resource to application
       run: |
-          arm_token=$(az account get-access-token --query accessToken -o tsv)
+          az account get-access-token --query accessToken -o tsv | arm_token={}
           bf luis:application:assignazureaccount --accountName $AzureLuisPredictionResourceName \
               --appId $AppId --armToken $arm_token \
               --endpoint $luisAuthoringEndpoint --resourceGroup $AzureResourceGroup \
