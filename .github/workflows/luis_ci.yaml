@@ -142,8 +142,9 @@ jobs:
           az account show --query 'id' | \
           xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
 
-    - name: Assign LUIS Azure Prediction resource to application
-      run: bf luis:application:assignazureaccount --accountName $AzureLuisPredictionResourceName \
+    - name: Assign LUIS Azure Prediction resource to application
+      run: |
+          bf luis:application:assignazureaccount --accountName $AzureLuisPredictionResourceName \
               --appId $AppId --armToken $(az account get-access-token --query accessToken -o tsv) \
               --endpoint $luisAuthoringEndpoint --resourceGroup $AzureResourceGroup \
               --subscriptionKey ${{ env.LUISAuthoringKey }}
