@@ -70,8 +70,7 @@ jobs:
 
     - name: Get LUIS authoring key
       run: |
-          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
-          key=$(xargs -I {})
+          key=$(az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | xargs -I {})
           echo "key:$key"
           echo "::set-env name=LUISAuthoringKey::$key"
           echo "::add-mask::$key"
