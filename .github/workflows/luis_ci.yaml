@@ -70,17 +70,17 @@ jobs:
 
     - name: Get LUIS authoring key
       run: |
-          key=$(az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | xargs -I {})
-          echo "key:$key"
-          echo "::set-env name=LUISAuthoringKey::$key"
-          echo "::add-mask::$key"
+          key1=$(az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1")
+          echo "key:$key1"
+          echo "::set-env name=LUISAuthoringKey::$key1"
+          echo "::add-mask::$key1"
           
     - name: Get LUIS prediction key
       run: |
           az cognitiveservices account keys list --name $AzureLuisPredictionResourceName --resource-group $AzureResourceGroup --query "key1" | \
           xargs -I {} echo "::set-env name=LUISPredictionKey::{}"
-          echo "Pkey:{{ env.LUISPredictionKey }}"
-          echo "Pkey1:$LUISPREDICTIONKEY"
+          echo 'Pkey:"{{ env.LUISPredictionKey }}"'
+          echo "$LUISPredictionKey is the key"
 
     - name: Get LUIS authoring endpoint
       run: |
