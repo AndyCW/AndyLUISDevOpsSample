@@ -7,6 +7,8 @@ on:
   release:
 
 env:
+  # Set the Azure Resource Group name
+  AzureResourceGroup: YOUR_RESOURCE_GROUP_NAME
   # Set the Azure LUIS Authoring Resource name
   AzureLuisAuthoringResourceName: LUISDevOpsResource-Authoring
   
