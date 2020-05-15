@@ -74,7 +74,7 @@ jobs:
       run: bf luis:train:run --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
 
     - name: Publish luis
-      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}
+      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false
 
     - name: Install dotnet-nlu
       run: dotnet tool install -g dotnet-nlu
@@ -104,6 +104,7 @@ jobs:
         luisVersionId: 0.1
         luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
+        luisIsStaging: false
 
     - name: Analyze Unit test results
       run: dotnet nlu compare -e $UNIT_TEST_FILE -a results.json --unit-test --output-folder unittest
