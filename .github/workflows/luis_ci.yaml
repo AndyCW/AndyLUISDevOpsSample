@@ -148,7 +148,7 @@ jobs:
         luisVersionId: ${{ env.luisAppVersion }}
         luisDirectVersionPublish: true        
         luisEndpointKey: ${{ env.LUISPredictionKey }}
-        luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
+        luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
 
     - name: Analyze Unit test results
       run: dotnet nlu compare -e $UNIT_TEST_FILE -a results.json --unit-test --output-folder unittest
@@ -250,12 +250,11 @@ jobs:
     - name: Test Luis model with quality verification tests
       run: dotnet nlu test -s luisV3 -u $QUALITY_TEST_FILE -o F-results.json
       env: 
-        AzureLuisResourceName: ${{ env.AzureLuisPredictionResourceName }} 
         luisAppId: ${{ env.LUISAppId }} 
         luisVersionId: ${{ env.LuisVersion }}
         luisDirectVersionPublish: true
         luisEndpointKey: ${{ env.LUISPredictionKey }}
-        luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
+        luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
 
     - name: download baseline
       if: env.BASELINE_CONTAINER_NAME != ''
