@@ -1,0 +1,66 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+name: LUIS-CD
+
+# Trigger the workflow on a GitHub Release
+on:
+  release:
+
+env:
+  # Set the Azure LUIS Authoring Resource name
+  AzureLuisAuthoringResourceName: YOUR_LUIS_AUTHORING_RESOURCE_NAME
+  # Set the Azure LUIS Prediction Resource name
+  AzureLuisPredictionResourceName: YOUR_LUIS_PREDICTION_RESOURCE_NAME
+  
+jobs:
+  # Job: Publishes the latest version details, from which the endpoint can be derived
+  release:
+    name: Create LUIS Deployment
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@master
+
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+      
+    - name: Install @microsoft/botframework-cli
+      run: npm i -g @microsoft/botframework-cli
+
+    - name: Bypass botframework-cli telemetry prompts, enable telemetry collection - set to false to disable telemetry collection
+      run: echo "::set-env name=BF_CLI_TELEMETRY::true"
+
+    - name: Get LUIS authoring key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
+
+    - name: Get LUIS authoring endpoint
+      run: |
+          az cognitiveservices account show --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "endpoint" | \
+          xargs -I {} echo "::set-env name=luisAuthoringEndpoint::{}"
+
+    - name: Get master LUIS application ID
+      run: |
+        bf luis:application:list --subscriptionKey ${{ env.LUISAuthoringKey }} --endpoint $luisAuthoringEndpoint | \
+        jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
+        xargs -I {} echo "::set-env name=AppId::{}"
+        echo "Found LUIS app: $AppId"
+
+    - name: Get LUIS latest version ID
+      run: |
+        bf luis:version:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --take 1 --out luis_latest_version.json
+        cat luis_latest_version.json | jq '.[0].version' | \
+        xargs -I {} echo "::set-env name=LuisVersion::{}"
+
+    - name: Publish LUIS to PRODUCTION
+      run: bf luis:application:publish --appId $AppId --versionId $LuisVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}
+
+      
+
