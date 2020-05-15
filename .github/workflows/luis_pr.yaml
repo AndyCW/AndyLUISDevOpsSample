@@ -1,0 +1,147 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+name: LUIS-PR
+
+# Trigger the workflow on push or pull request, but only for the master branch, and only for changes to lu or json files
+on:
+  pull_request:
+    paths:
+      - 'luis-app/*.lu'
+      - 'luis-app/tests/*.json'
+
+env:
+  # Set the Azure Resource Group name
+  AzureResourceGroup: YOUR_RESOURCE_GROUP_NAME
+  # Set the Azure LUIS Authoring Resource name
+  AzureLuisAuthoringResourceName: YOUR_LUIS_AUTHORING_RESOURCE_NAME
+  # Set the Azure LUIS Prediction Resource name
+  AzureLuisPredictionResourceName: YOUR_LUIS_PREDICTION_RESOURCE_NAME
+  # Set the Azure Storage Account name
+  AzureStorageAccountName: yourstorageaccountname
+  
+  # Set the name of the master LUIS app
+  LUIS_MASTER_APP_NAME: LUISDevOps-master
+  # If your repository is Private, set this to true
+  IS_PRIVATE_REPOSITORY: false
+
+  # Set the path to the lu file for your LUIS app
+  LU_FILE: luis-app/model.lu
+  # Set the path to the file for your unit tests
+  UNIT_TEST_FILE: luis-app/tests/unittests.json
+
+jobs:
+  build:
+    name: Build and Test LUIS model (PR)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Fetch all history for all tags and branches - for GitVersion
+      if: env.IS_PRIVATE_REPOSITORY == 'false'
+      run: git fetch --prune --unshallow
+    - name: Fetch all history for all tags and branches (private repo) - for GitVersion
+      if: env.IS_PRIVATE_REPOSITORY == 'true'
+      run: |
+        git config remote.origin.url https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        git fetch --prune --unshallow    
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.3
+      with:
+          versionSpec: '5.2.x'
+    - name: Use GitVersion
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0.9.3
+        
+    - name: luisAppVersion env
+      run: echo "::set-env name=luisAppVersion::$GitVersion_SemVer" 
+
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Get LUIS authoring key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
+
+    - name: Get LUIS prediction key
+      run: |
+          az cognitiveservices account keys list --name $AzureLuisPredictionResourceName --resource-group $AzureResourceGroup --query "key1" | \
+          xargs -I {} echo "::set-env name=LUISPredictionKey::{}"
+
+    - name: Get LUIS authoring endpoint
+      run: |
+          az cognitiveservices account show --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "endpoint" | \
+          xargs -I {} echo "::set-env name=luisAuthoringEndpoint::{}"
+
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
+    - name: Install botframework-cli
+      run: npm i -g @microsoft/botframework-cli
+
+    - name: Bypass botframework-cli telemetry prompts, enable telemetry collection - set to false to disable telemetry collection
+      run: echo "::set-env name=BF_CLI_TELEMETRY::true"
+
+    - name: Ludown to LUIS model
+      run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS CI pipeline - ${{ github.run_id }}' --versionid $luisAppVersion
+
+    # When doing a gate check on PRs, we build a new LUIS application for testing that is later deleted
+    - name: Create PR check LUIS application 
+      if: github.event_name == 'pull_request'
+      run: |
+        importResult=`bf luis:application:import --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}  --in model.json`
+        echo "::set-env name=AppId::$(echo $(echo $importResult | cut -b 35-70))" 
+
+    - name: Train luis
+      run: bf luis:train:run --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
+
+    - name: Publish luis
+      run: bf luis:application:publish --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}
+
+    - name: Install dotnet-nlu
+      run: dotnet tool install -g dotnet-nlu
+
+    - name: Add dotnet Tools to Path
+      run: echo "::add-path::$HOME/.dotnet/tools"
+
+    - name: Get Azure subscriptionId
+      run: |
+          az account show --query 'id' | \
+          xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
+
+    - name: Assign LUIS Azure Prediction resource to application
+      run: |
+        curl POST $POSTurl \
+        -H "Authorization: Bearer $(az account get-access-token --query accessToken -o tsv)" \
+        -H "Content-Type: application/json" \
+        -H "Ocp-Apim-Subscription-Key: ${{ env.LUISAuthoringKey }}" \
+        --data-ascii "{'AzureSubscriptionId': '$AzureSubscriptionId', 'ResourceGroup': '$AzureResourceGroup', 'AccountName': '$AzureLuisPredictionResourceName' }"
+      env:
+        POSTurl: ${{ env.luisAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.AppId }}/azureaccounts
+
+    - name: Test Luis model
+      run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
+      env:
+        luisAppId: ${{ env.AppId }}
+        luisVersionId: ${{ env.luisAppVersion }}
+        luisEndpointKey: ${{ env.LUISPredictionKey }}
+        luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
+
+    - name: Analyze Unit test results
+      run: dotnet nlu compare -e $UNIT_TEST_FILE -a results.json --unit-test --output-folder unittest
+
+    - name: Archive Unit Test Results
+      uses: actions/upload-artifact@v1
+      with:
+        name: UnitTestResult
+        path: unittest/TestResult.xml      
+
+    # Delete the LUIS app again if we are executing as gate check on a PR
+    - name: Delete luis test target app
+      if: always()
+      shell: bash
+      run:  bf luis:application:delete --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --force
