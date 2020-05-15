@@ -5,15 +5,14 @@ name: LUIS-CD
 # Trigger the workflow on a GitHub Release
 on:
   release:
-    types: 
-      - created
+    tags:
+      - v*
   
 jobs:
   # Job: Continuous deployment job for LUIS
   release:
     name: Create LUIS Deployment
     runs-on: ubuntu-latest
-    needs: build
     steps:
     - name: Checkout code
       uses: actions/checkout@master
