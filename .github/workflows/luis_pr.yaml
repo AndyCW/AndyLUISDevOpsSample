@@ -76,7 +76,7 @@ jobs:
       run: bf luis:train:run --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
 
     - name: Publish luis
-      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false
+      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}
 
     - name: Install dotnet-nlu
       run: dotnet tool install -g dotnet-nlu
