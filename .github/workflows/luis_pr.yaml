@@ -98,7 +98,7 @@ jobs:
         luisAppId: ${{ env.LUISAppId }}
         luisVersionId: 0.1
         luisEndpointKey: ${{ env.LUISPredictionKey }}
-        luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
+        luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
         luisIsStaging: false
 
     - name: Analyze Unit test results
