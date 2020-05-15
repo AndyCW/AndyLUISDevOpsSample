@@ -71,7 +71,7 @@ jobs:
         jq '.id' | xargs -I {} echo "::set-env name=AppId::{}"
 
     - name: Train luis
-      run: bf luis:train:run --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
+      run: bf luis:train:run --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
 
     - name: Publish luis
       run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false
