@@ -5,8 +5,6 @@ name: LUIS-CD
 # Trigger the workflow on a GitHub Release
 on:
   release:
-    tags:
-      - v*
   
 jobs:
   # Job: Continuous deployment job for LUIS
