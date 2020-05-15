@@ -71,10 +71,10 @@ jobs:
         jq '.id' | xargs -I {} echo "::set-env name=AppId::{}"
 
     - name: Train luis
-      run: bf luis:train:run --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
+      run: bf luis:train:run --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait --json
 
     - name: Publish luis
-      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false
+      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false --json
 
     - name: Install dotnet-nlu
       run: dotnet tool install -g dotnet-nlu
@@ -115,7 +115,3 @@ jobs:
         name: UnitTestResult
         path: unittest/TestResult.xml      
 
-    # Delete the LUIS app again if we are executing as gate check on a PR
-    - name: Delete luis test target app
-      if: always()
-      run:  bf luis:application:delete --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --force
