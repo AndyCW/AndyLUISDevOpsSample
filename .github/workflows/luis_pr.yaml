@@ -32,26 +32,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Fetch all history for all tags and branches - for GitVersion
-      if: env.IS_PRIVATE_REPOSITORY == 'false'
-      run: git fetch --prune --unshallow
-    - name: Fetch all history for all tags and branches (private repo) - for GitVersion
-      if: env.IS_PRIVATE_REPOSITORY == 'true'
-      run: |
-        git config remote.origin.url https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-        git fetch --prune --unshallow    
-
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.3
-      with:
-          versionSpec: '5.2.x'
-    - name: Use GitVersion
-      id: gitversion
-      uses: gittools/actions/gitversion/execute@v0.9.3
-        
-    - name: luisAppVersion env
-      run: echo "::set-env name=luisAppVersion::$GitVersion_SemVer" 
-
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -82,20 +62,19 @@ jobs:
       run: echo "::set-env name=BF_CLI_TELEMETRY::true"
 
     - name: Ludown to LUIS model
-      run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS CI pipeline - ${{ github.run_id }}' --versionid $luisAppVersion
+      run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS PR pipeline - ${{ github.run_id }}' --versionid 0.1
 
     # When doing a gate check on PRs, we build a new LUIS application for testing that is later deleted
     - name: Create PR check LUIS application 
-      if: github.event_name == 'pull_request'
       run: |
-        importResult=`bf luis:application:import --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}  --in model.json`
-        echo "::set-env name=AppId::$(echo $(echo $importResult | cut -b 35-70))" 
+        bf luis:application:import --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}  --in model.json --json | \
+        jq '.id' | xargs -I {} echo "::set-env name=AppId::{}"
 
     - name: Train luis
       run: bf luis:train:run --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
 
     - name: Publish luis
-      run: bf luis:application:publish --appId $AppId --versionId $luisAppVersion --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}
+      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }}
 
     - name: Install dotnet-nlu
       run: dotnet tool install -g dotnet-nlu
@@ -122,7 +101,7 @@ jobs:
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
       env:
         luisAppId: ${{ env.AppId }}
-        luisVersionId: ${{ env.luisAppVersion }}
+        luisVersionId: 0.1
         luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ env.AzureLuisPredictionResourceName }}
 
@@ -138,5 +117,4 @@ jobs:
     # Delete the LUIS app again if we are executing as gate check on a PR
     - name: Delete luis test target app
       if: always()
-      shell: bash
       run:  bf luis:application:delete --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --force
