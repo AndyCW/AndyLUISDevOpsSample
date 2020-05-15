@@ -8,10 +8,6 @@ on:
     paths:
       - 'luis-app/*.lu'
       - 'luis-app/Tests/*.json'
-  pull_request:
-    paths:
-      - 'luis-app/*.lu'
-      - 'luis-app/Tests/*.json'
 
 env:
   # Set the Azure Resource Group name
