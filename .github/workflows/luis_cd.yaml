@@ -46,14 +46,14 @@ jobs:
       run: |
         bf luis:application:list --subscriptionKey $LUISAuthoringKey --endpoint $LUISAuthoringEndpoint | \
         jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
-        xargs -I {} echo "::set-env name=AppId::{}"
-        echo "Found LUIS app: $AppId"
+        xargs -I {} echo "::set-env name=LUISAppId::{}"
+        echo "Found LUIS app: $LUISAppId"
 
     - name: Get LUIS latest version ID
       run: |
-        bf luis:version:list --appId $AppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey --take 1 --out luis_latest_version.json
+        bf luis:version:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey --take 1 --out luis_latest_version.json
         cat luis_latest_version.json | jq '.[0].version' | \
-        xargs -I {} echo "::set-env name=LuisVersion::{}"
+        xargs -I {} echo "::set-env name=LUISAppVersion::{}"
 
     - name: Publish LUIS to PRODUCTION
-      run: bf luis:application:publish --appId $AppId --versionId $LuisVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey
+      run: bf luis:application:publish --appId $LUISAppId --versionId $LUISAppVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey
