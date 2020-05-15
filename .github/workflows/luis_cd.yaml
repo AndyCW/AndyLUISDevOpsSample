@@ -8,9 +8,7 @@ on:
 
 env:
   # Set the Azure LUIS Authoring Resource name
-  AzureLuisAuthoringResourceName: YOUR_LUIS_AUTHORING_RESOURCE_NAME
-  # Set the Azure LUIS Prediction Resource name
-  AzureLuisPredictionResourceName: YOUR_LUIS_PREDICTION_RESOURCE_NAME
+  AzureLuisAuthoringResourceName: LUISDevOpsResource-Authoring
   
 jobs:
   # Job: Publishes the latest version details, from which the endpoint can be derived
