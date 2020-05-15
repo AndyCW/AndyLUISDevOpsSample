@@ -38,13 +38,15 @@ jobs:
 
     - name: Get LUIS authoring key
       run: |
-          az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | \
-          xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
+         keya=$(az cognitiveservices account keys list --name $AzureLuisAuthoringResourceName --resource-group $AzureResourceGroup --query "key1" | xargs)
+         echo "::set-env name=LUISAuthoringKey::$keya"
+         echo "::add-mask::$keya"
 
     - name: Get LUIS prediction key
       run: |
-          az cognitiveservices account keys list --name $AzureLuisPredictionResourceName --resource-group $AzureResourceGroup --query "key1" | \
-          xargs -I {} echo "::set-env name=LUISPredictionKey::{}"
+         keyp=$(az cognitiveservices account keys list --name $AzureLuisPredictionResourceName --resource-group $AzureResourceGroup --query "key1" | xargs)
+         echo "::set-env name=LUISPredictionKey::$keyp"
+         echo "::add-mask::$keyp"
 
     - name: Get LUIS authoring endpoint
       run: |
@@ -71,10 +73,10 @@ jobs:
         jq '.id' | xargs -I {} echo "::set-env name=AppId::{}"
 
     - name: Train luis
-      run: bf luis:train:run --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait --json
+      run: bf luis:train:run --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --wait
 
     - name: Publish luis
-      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false --json
+      run: bf luis:application:publish --appId $AppId --versionId 0.1 --endpoint $luisAuthoringEndpoint --subscriptionKey ${{ env.LUISAuthoringKey }} --staging false
 
     - name: Install dotnet-nlu
       run: dotnet tool install -g dotnet-nlu
