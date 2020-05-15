@@ -49,8 +49,8 @@ jobs:
       id: gitversion
       uses: gittools/actions/gitversion/execute@v0.9.3
         
-    - name: luisAppVersion env
-      run: echo "::set-env name=luisAppVersion::$GitVersion_SemVer" 
+    - name: LUISAppVersion env
+      run: echo "::set-env name=LUISAppVersion::$GitVersion_SemVer" 
 
     - uses: azure/login@v1
       with:
@@ -82,7 +82,7 @@ jobs:
       run: echo "::set-env name=BF_CLI_TELEMETRY::true"
 
     - name: Ludown to LUIS model
-      run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS CI pipeline - ${{ github.run_id }}' --versionid $luisAppVersion
+      run: bf luis:convert -i $LU_FILE -o ./model.json --name 'LUIS CI pipeline - ${{ github.run_id }}' --versionid $LUISAppVersion
 
     # When doing a merge to master, use the master LUIS app - create if necessary (soft fails if exists)
     - name: Get master LUIS application ID
@@ -109,14 +109,14 @@ jobs:
 
     - name: Train luis
       shell: bash
-      run: bf luis:train:run --appId $LUISAppId --versionId $luisAppVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --wait
+      run: bf luis:train:run --appId $LUISAppId --versionId $LUISAppVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --wait
 
     - name: Publish luis
       run: |
         curl POST $POSTurl \
         -H "Content-Type: application/json" \
         -H "Ocp-Apim-Subscription-Key: $LUISAuthoringKey " \
-        --data-ascii "{'versionId': '$luisAppVersion', 'directVersionPublish': true}" 
+        --data-ascii "{'versionId': '$LUISAppVersion', 'directVersionPublish': true}" 
       env:
         POSTurl: ${{ env.LUISAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.LUISAppId }}/publish
 
@@ -145,7 +145,7 @@ jobs:
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
       env:
         luisAppId: ${{ env.LUISAppId }}
-        luisVersionId: ${{ env.luisAppVersion }}
+        luisVersionId: ${{ env.LUISAppVersion }}
         luisDirectVersionPublish: true        
         luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
@@ -165,8 +165,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       with:
-        tag_name: ${{ env.LuisVersion }}
-        release_name: Release ${{ env.LuisVersion }}
+        tag_name: ${{ env.LUISAppVersion }}
+        release_name: Release ${{ env.LUISAppVersion }}
         body: |
           Releasing new LUIS endpoint
         draft: false
@@ -241,7 +241,7 @@ jobs:
       run: |
         bf luis:version:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --take 1 | \
         jq '.[0].version' | \
-        xargs -I {} echo "::set-env name=LuisVersion::{}"
+        xargs -I {} echo "::set-env name=LUISAppVersion::{}"
 
     - name: Install dotnet-nlu
       run: dotnet tool install -g dotnet-nlu
@@ -253,7 +253,7 @@ jobs:
       run: dotnet nlu test -s luisV3 -u $QUALITY_TEST_FILE -o F-results.json
       env: 
         luisAppId: ${{ env.LUISAppId }} 
-        luisVersionId: ${{ env.LuisVersion }}
+        luisVersionId: ${{ env.LUISAppVersion }}
         luisDirectVersionPublish: true
         luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
