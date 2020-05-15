@@ -1,6 +1,6 @@
 # LUIS DevOps Sample
 
-![Preview](https://img.shields.io/github/v/release/:andycw/:AndyLUISDevOpsSample?include_prereleases&sort=semver)
+![Preview](https://img.shields.io/github/v/release/AndyCW/AndyLUISDevOpsSample?include_prereleases&sort=semver)
 
 Template repository demonstrating DevOps practices for LUIS app development
 
