@@ -5,6 +5,7 @@ name: LUIS-CD
 # Trigger the workflow on a GitHub Release
 on:
   release:
+      types: [published]
 
 env:
   # Set the Azure Resource Group name
