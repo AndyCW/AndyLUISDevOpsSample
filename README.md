@@ -1,5 +1,7 @@
 # LUIS DevOps Sample
 
+![Preview](https://img.shields.io/github/v/release/:user/:repo?include_prereleases&sort=semver)
+
 Template repository demonstrating DevOps practices for LUIS app development
 
 ## Getting Started with LUIS DevOps
