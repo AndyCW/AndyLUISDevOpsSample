@@ -116,7 +116,7 @@ jobs:
       run: |
         while true
         do 
-          status=`bf luis:version:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  jq '.[] | select(.version == "$LUISAppVersion") | .trainingStatus' | xargs`
+          status=`bf luis:version:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  jq '.[] | select(.version == '\"$LUISAppVersion\"') | .trainingStatus' | xargs`
           if [ "$status" == "Trained" ]
           then
             break
@@ -126,7 +126,7 @@ jobs:
           fi
           echo 'sleep 10'
           sleep 10
-        done
+        done 
 
     - name: Publish luis
       run: |
