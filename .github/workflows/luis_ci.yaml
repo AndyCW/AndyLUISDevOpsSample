@@ -114,7 +114,7 @@ jobs:
 
     - name: Wait for train
       run: |
-        while [ `bf luis:train:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  'jq -c '.[] | select(.version | . and contains('\"$LUISAppVersion\"')) | .trainingStatus'` == "Trained" ]
+        while [ `bf luis:train:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  jq -c '.[] | select(.version | . and contains('\"$LUISAppVersion\"')) | .trainingStatus'` == "Trained" ]
         do 
           echo 'sleep 10'
           sleep 10
