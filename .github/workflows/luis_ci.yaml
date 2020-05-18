@@ -23,6 +23,8 @@ env:
   UNIT_TEST_FILE: luis-app/tests/unittests.json
   # Set the path to the file for your unit tests
   QUALITY_TEST_FILE: luis-app/tests/verificationtests.json
+  # Set the name of the container in the Azure Storage account that contains the baseline F-measure results
+  BASELINE_CONTAINER_NAME: 86e64332088ce714004e97838950532290b6307d
 
 jobs:
   build:
