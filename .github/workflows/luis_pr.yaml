@@ -75,6 +75,7 @@ jobs:
         while true
         do 
           status=`bf luis:version:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  jq '.[] | select(.version == "0.1") | .trainingStatus'`
+          echo $status
           if [ $status == "Trained" ]
           then
             break
