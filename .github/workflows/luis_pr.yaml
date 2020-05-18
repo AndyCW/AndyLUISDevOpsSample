@@ -66,8 +66,17 @@ jobs:
       run: |
         bf luis:application:import --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --in model.json --json | \
         jq '.id' | xargs -I {} echo "::set-env name=LUISAppId::{}"
+        
     - name: Train luis
-      run: bf luis:train:run --appId $LUISAppId --versionId 0.1 --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey --wait
+      run: bf luis:train:run --appId $LUISAppId --versionId 0.1 --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey
+
+    - name: Wait for train
+      run: |
+        while [ `bf luis:train:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  'jq -c '.[] | select(.version | . and contains('\"0.1\"')) | .trainingStatus'` == "Trained" ]
+        do 
+          echo 'sleep 10'
+          sleep 10
+        done
 
     - name: Publish luis
       run: bf luis:application:publish --appId $LUISAppId --versionId 0.1 --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey
