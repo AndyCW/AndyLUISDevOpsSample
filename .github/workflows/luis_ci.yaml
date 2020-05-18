@@ -23,8 +23,6 @@ env:
   UNIT_TEST_FILE: luis-app/tests/unittests.json
   # Set the path to the file for your unit tests
   QUALITY_TEST_FILE: luis-app/tests/verificationtests.json
-  # Set the name of the container in the Azure Storage account that contains the baseline F-measure results
-  BASELINE_CONTAINER_NAME: 86e64332088ce714004e97838950532290b6307d
 
 jobs:
   build:
@@ -60,13 +58,15 @@ jobs:
 
     - name: Get LUIS authoring key
       run: |
-          az cognitiveservices account keys list --name ${{ secrets.AZURE_LUIS_AUTHORING_RESOURCE_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "key1" | \
-          xargs -I {} echo "::set-env name=LUISAuthoringKey::{}"
+         keya=$(az cognitiveservices account keys list --name ${{ secrets.AZURE_LUIS_AUTHORING_RESOURCE_NAME }} --resource-group $AzureResourceGroup --query "key1" | xargs)
+         echo "::set-env name=LUISAuthoringKey::$keya"
+         echo "::add-mask::$keya"
 
     - name: Get LUIS prediction key
       run: |
-          az cognitiveservices account keys list --name ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "key1" | \
-          xargs -I {} echo "::set-env name=LUISPredictionKey::{}"
+         keyp=$(az cognitiveservices account keys list --name ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --resource-group $AzureResourceGroup --query "key1" | xargs)
+         echo "::set-env name=LUISPredictionKey::$keyp"
+         echo "::add-mask::$keyp"
 
     - name: Get LUIS authoring endpoint
       run: |
@@ -110,8 +110,15 @@ jobs:
       run: bf luis:version:import --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --in model.json
 
     - name: Train luis
-      shell: bash
-      run: bf luis:train:run --appId $LUISAppId --versionId $LUISAppVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --wait
+      run: bf luis:train:run --appId $LUISAppId --versionId $LUISAppVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey
+
+    - name: Wait for train
+      run: |
+        while [ `bf luis:train:list --appId $AppId --endpoint $luisAuthoringEndpoint --subscriptionKey $LUISAuthoringKey |  'jq -c '.[] | select(.version | . and contains('\"$LUISAppVersion\"')) | .trainingStatus'` == "Trained" ]
+        do 
+          echo 'sleep 10'
+          sleep 10
+        done
 
     - name: Publish luis
       run: |
@@ -148,7 +155,7 @@ jobs:
       env:
         luisAppId: ${{ env.LUISAppId }}
         luisVersionId: ${{ env.LUISAppVersion }}
-        luisDirectVersionPublish: true        
+        luisDirectVersionPublish: true
         luisEndpointKey: ${{ env.LUISPredictionKey }}
         luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
 
@@ -179,7 +186,7 @@ jobs:
         bf luis:version:list --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --take 1 --out luis_latest_version.json
 
     - name: Upload Release Asset
-      id: upload-release-asset 
+      id: upload-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -206,6 +213,7 @@ jobs:
 
     - name: Get LUIS authoring key
       run: |
+
          keya=$(az cognitiveservices account keys list --name ${{ secrets.AZURE_LUIS_AUTHORING_RESOURCE_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "key1" | xargs)
          echo "::set-env name=LUISAuthoringKey::$keya"
          echo "::add-mask::$keya"
