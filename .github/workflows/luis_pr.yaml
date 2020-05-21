@@ -101,10 +101,15 @@ jobs:
           az account show --query 'id' | \
           xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
           
+    - name: Get ARM Token
+      run: |
+          az account get-access-token --query accessToken -o tsv | \
+          xargs -I {} echo "::set-env name=AzureArmToken::{}"
+          
     - name: Assign LUIS Azure Prediction resource to application
       run: |
         armtoken=$(az account get-access-token --query accessToken -o tsv | xargs)
-        bf luis:application:assignazureaccount --accountName ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --appId $LUISAppId --armToken $armtoken --azureSubscriptionId $AzureSubscriptionId --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --subscriptionKey ${{ env.LUISAuthoringKey }} --json
+        bf luis:application:assignazureaccount --accountName ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --appId $LUISAppId --armToken $AzureArmToken --azureSubscriptionId $AzureSubscriptionId --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --subscriptionKey ${{ env.LUISAuthoringKey }} --json
 
     - name: Test Luis model
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
