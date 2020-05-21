@@ -107,6 +107,7 @@ jobs:
           xargs -I {} echo "::set-env name=AzureArmToken::{}"
           
     - name: Assign LUIS Azure Prediction resource to application
+      shell: pwsh
       run: |
           bf luis:application:assignazureaccount --azureSubscriptionId $AzureSubscriptionId --appId $LUISAppId --accountName ${luisPredictionResourceName} --subscriptionKey ${LUISAuthoringKey} --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --armToken $AzureArmToken
       env:
