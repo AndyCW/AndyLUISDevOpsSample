@@ -107,8 +107,9 @@ jobs:
           xargs -I {} echo "::set-env name=AzureArmToken::{}"
           
     - name: Assign LUIS Azure Prediction resource to application
+      shell: bash
       run: |
-          bf luis:application:assignazureaccount --accountName "$luisPredictionResourceName" --azureSubscriptionId $AzureSubscriptionId --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --resourceGroup "$azureResourceGroup" --subscriptionKey $LUISAuthoringKey --json --armToken $AzureArmToken
+          bf luis:application:assignazureaccount --accountName $luisPredictionResourceName --azureSubscriptionId $AzureSubscriptionId --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --subscriptionKey $LUISAuthoringKey --json --armToken $AzureArmToken
       env:
         luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
         azureResourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
