@@ -101,15 +101,10 @@ jobs:
           az account show --query 'id' | \
           xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
           
-    - name: Get ARM Token
-      run: |
-          az account get-access-token --query accessToken -o tsv | \
-          xargs -I {} echo "::set-env name=AzureArmToken::{}"
-          
     - name: Assign LUIS Azure Prediction resource to application
       shell: pwsh
       run: |
-          bf luis:application:assignazureaccount --azureSubscriptionId $env:AzureSubscriptionId --appId $env:LUISAppId --accountName $env:luisPredictionResourceName --subscriptionKey $env:LUISAuthoringKey --endpoint $env:LUISAuthoringEndpoint --resourceGroup $env:azureResourceGroup --armToken $env:AzureArmToken
+          bf luis:application:assignazureaccount --azureSubscriptionId $env:AzureSubscriptionId --appId $env:LUISAppId --accountName $env:luisPredictionResourceName --subscriptionKey $env:LUISAuthoringKey --endpoint $env:LUISAuthoringEndpoint --resourceGroup $env:azureResourceGroup --armToken $(az account get-access-token --query accessToken -o tsv)
       env:
         luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
         azureResourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
