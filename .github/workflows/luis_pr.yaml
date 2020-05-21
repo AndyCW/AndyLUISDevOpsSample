@@ -109,7 +109,7 @@ jobs:
     - name: Assign LUIS Azure Prediction resource to application
       shell: pwsh
       run: |
-          bf luis:application:assignazureaccount --azureSubscriptionId $AzureSubscriptionId --appId $LUISAppId --accountName ${luisPredictionResourceName} --subscriptionKey ${LUISAuthoringKey} --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --armToken $AzureArmToken
+          bf luis:application:assignazureaccount --azureSubscriptionId $AzureSubscriptionId --appId $LUISAppId --accountName $luisPredictionResourceName --subscriptionKey $LUISAuthoringKey --endpoint $LUISAuthoringEndpoint --resourceGroup $azureResourceGroup --armToken $AzureArmToken
       env:
         luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
         azureResourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
