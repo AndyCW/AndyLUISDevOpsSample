@@ -109,7 +109,7 @@ jobs:
     - name: Assign LUIS Azure Prediction resource to application
       run: |
         armtoken=$(az account get-access-token --query accessToken -o tsv | xargs)
-        bf luis:application:assignazureaccount --accountName ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --appId $LUISAppId --azureSubscriptionId $AzureSubscriptionId --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --subscriptionKey ${{ env.LUISAuthoringKey }} --json --armToken "$AzureArmToken" 
+        bf luis:application:assignazureaccount --accountName ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --azureSubscriptionId $AzureSubscriptionId --appId $LUISAppId --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --subscriptionKey ${{ env.LUISAuthoringKey }} --json --armToken "$AzureArmToken" 
 
     - name: Test Luis model
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
