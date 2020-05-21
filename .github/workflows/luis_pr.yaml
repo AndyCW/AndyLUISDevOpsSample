@@ -100,15 +100,10 @@ jobs:
       run: |
           az account show --query 'id' | \
           xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
+          
     - name: Assign LUIS Azure Prediction resource to application
       run: |
-        curl POST $POSTurl \
-        -H "Authorization: Bearer $(az account get-access-token --query accessToken -o tsv)" \
-        -H "Content-Type: application/json" \
-        -H "Ocp-Apim-Subscription-Key: $LUISAuthoringKey" \
-        --data-ascii "{'AzureSubscriptionId': '$AzureSubscriptionId', 'ResourceGroup': '${{ secrets.AZURE_RESOURCE_GROUP }}', 'AccountName': '${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}' }"
-      env:
-        POSTurl: ${{ env.LUISAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.LUISAppId }}/azureaccounts
+        bf luis:application:assignazureaccount --accountName ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }} --appId $LUISAppId --armToken $(az account get-access-token --query accessToken -o tsv) --azureSubscriptionId $AzureSubscriptionId --endpoint $LUISAuthoringEndpoint --resourceGroup ${{ secrets.AZURE_RESOURCE_GROUP }} --subscriptionKey ${{ env.LUISAuthoringKey }} --json
 
     - name: Test Luis model
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
