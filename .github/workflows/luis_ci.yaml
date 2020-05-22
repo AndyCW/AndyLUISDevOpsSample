@@ -23,6 +23,7 @@ env:
   UNIT_TEST_FILE: luis-app/tests/unittests.json
   # Set the path to the file for your unit tests
   QUALITY_TEST_FILE: luis-app/tests/verificationtests.json
+  BASELINE_CONTAINER_NAME: 5bccf3a4b6f866354cafb012b0adb2b73d2f5945
 
 jobs:
   build:
@@ -285,7 +286,7 @@ jobs:
 
     - name: Compare Luis model F-measure with baseline
       if: env.BASELINE_CONTAINER_NAME != ''
-      run: dotnet nlu compare -e $QUALITY_TEST_FILE -a F-results.json --baseline baselinefile.json 
+      run: dotnet nlu compare -e $QUALITY_TEST_FILE -a F-results.json --baseline baselinefile.json --test-settings luis-app/tests/compare.yml
 
     # if no baseline configured, then we just compare against the expected results to create statistics that can become the new baseline
     - name: Analyze Luis model F-measure - Create baseline
