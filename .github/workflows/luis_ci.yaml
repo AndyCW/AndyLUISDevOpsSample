@@ -93,7 +93,10 @@ jobs:
         bf luis:application:list --subscriptionKey $LUISAuthoringKey  --endpoint $LUISAuthoringEndpoint | \
         jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
         xargs -I {} echo "::set-env name=LUISAppId::{}"
-        echo "Found LUIS app: $LUISAppId"
+
+    - name: Validate application ID
+      run: |
+        echo "LUIS app Id: $LUISAppId"
         if [ ${#LUISAppId} -ne 36 ]; then
           echo "ERROR: Failed to find LUIS master app. Check workflow configuration."
           exit 1
