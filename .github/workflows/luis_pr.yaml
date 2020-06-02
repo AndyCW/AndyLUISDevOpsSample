@@ -66,12 +66,11 @@ jobs:
     - name: Create PR check LUIS application 
       run: |
         response=$(bf luis:application:import --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey  --in model.json --json)
-        status=$("$response" | jq '.Status' | xargs)
+        status=$(echo "$response" | jq '.Status' | xargs)
         if [ "$status" == "Success" ]
         then
           appId=$("$response" | jq '.id' | xargs)
           echo "::set-env name=LUISAppId::$appId"
-          break
         else
           exit 1
         fi
