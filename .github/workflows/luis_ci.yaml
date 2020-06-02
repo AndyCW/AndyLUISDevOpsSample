@@ -23,7 +23,6 @@ env:
   UNIT_TEST_FILE: luis-app/tests/unittests.json
   # Set the path to the file for your unit tests
   QUALITY_TEST_FILE: luis-app/tests/verificationtests.json
-  BASELINE_CONTAINER_NAME: 5bccf3a4b6f866354cafb012b0adb2b73d2f5945
 
 jobs:
   build:
@@ -79,7 +78,7 @@ jobs:
         node-version: '12.x'
 
     - name: Install botframework-cli
-      run: npm i -g @microsoft/botframework-cli@4.9.0
+      run: npm i -g @microsoft/botframework-cli@4.9.1
 
     - name: Bypass botframework-cli telemetry prompts, enable telemetry collection - set to false to disable telemetry collection
       run: echo "::set-env name=BF_CLI_TELEMETRY::true"
@@ -95,6 +94,10 @@ jobs:
         jq -c '.[] | select(.name | . and contains('\"$LUIS_MASTER_APP_NAME\"')) | .id' | \
         xargs -I {} echo "::set-env name=LUISAppId::{}"
         echo "Found LUIS app: $LUISAppId"
+        if [ ${#LUISAppId} -ne 36 ]; then
+          echo "ERROR: Failed to find LUIS master app. Check workflow configuration."
+          exit 1
+        fi
 
     # Determine the current number of versions in the app, naive policy can purge oldest if count is at limit (100)
     # Current implementation prints error message and fails pipeline.
@@ -130,16 +133,10 @@ jobs:
         done 
 
     - name: Publish luis
-      run: |
-        curl POST $POSTurl \
-        -H "Content-Type: application/json" \
-        -H "Ocp-Apim-Subscription-Key: $LUISAuthoringKey " \
-        --data-ascii "{'versionId': '$LUISAppVersion', 'directVersionPublish': true}" 
-      env:
-        POSTurl: ${{ env.LUISAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.LUISAppId }}/publish
+      run: bf luis:application:publish --appId $LUISAppId --direct --versionId $LUISAppVersion --endpoint $LUISAuthoringEndpoint --subscriptionKey $LUISAuthoringKey
 
     - name: Install dotnet-nlu
-      run: dotnet tool install -g dotnet-nlu
+      run: dotnet tool install -g dotnet-nlu --version 0.7.5
 
     - name: Add dotnet Tools to Path
       run: echo "::add-path::$HOME/.dotnet/tools"
@@ -150,14 +147,12 @@ jobs:
           xargs -I {} echo "::set-env name=AzureSubscriptionId::{}"
 
     - name: Assign LUIS Azure Prediction resource to application
+      shell: pwsh
       run: |
-        curl POST $POSTurl \
-        -H "Authorization: Bearer $(az account get-access-token --query accessToken -o tsv)" \
-        -H "Content-Type: application/json" \
-        -H "Ocp-Apim-Subscription-Key: $LUISAuthoringKey" \
-        --data-ascii "{'AzureSubscriptionId': '$AzureSubscriptionId', 'ResourceGroup': '${{ secrets.AZURE_RESOURCE_GROUP }}', 'AccountName': '${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}' }"
+          bf luis:application:assignazureaccount --azureSubscriptionId $env:AzureSubscriptionId --appId $env:LUISAppId --accountName $env:luisPredictionResourceName --subscriptionKey $env:LUISAuthoringKey --endpoint $env:LUISAuthoringEndpoint --resourceGroup $env:azureResourceGroup --armToken $(az account get-access-token --query accessToken -o tsv)
       env:
-        POSTurl: ${{ env.LUISAuthoringEndpoint }}luis/authoring/v3.0-preview/apps/${{ env.LUISAppId }}/azureaccounts
+        luisPredictionResourceName: ${{ secrets.AZURE_LUIS_PREDICTION_RESOURCE_NAME }}
+        azureResourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
 
     - name: Test Luis model
       run: dotnet nlu test -s luisV3 -u $UNIT_TEST_FILE -o results.json
@@ -243,7 +238,7 @@ jobs:
         node-version: '12.x'
 
     - name: Install @microsoft/botframework-cli
-      run: npm i -g @microsoft/botframework-cli@4.9.0
+      run: npm i -g @microsoft/botframework-cli@4.9.1
 
     - name: Bypass botframework-cli telemetry prompts, enable telemetry collection - set to false to disable telemetry collection
       run: echo "::set-env name=BF_CLI_TELEMETRY::true"
@@ -262,7 +257,7 @@ jobs:
         xargs -I {} echo "::set-env name=LUISAppVersion::{}"
 
     - name: Install dotnet-nlu
-      run: dotnet tool install -g dotnet-nlu
+      run: dotnet tool install -g dotnet-nlu --version 0.7.5
 
     - name: Add dotnet Tools to Path
       run: echo "::add-path::$HOME/.dotnet/tools"
@@ -326,7 +321,7 @@ jobs:
         node-version: '12.x'
       
     - name: Install @microsoft/botframework-cli
-      run: npm i -g @microsoft/botframework-cli@4.9.0
+      run: npm i -g @microsoft/botframework-cli@4.9.1
 
     - name: Bypass botframework-cli telemetry prompts, enable telemetry collection - set to false to disable telemetry collection
       run: echo "::set-env name=BF_CLI_TELEMETRY::true"
